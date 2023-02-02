@@ -1,0 +1,14 @@
+---
+
+#
+# centos-epel
+#
+# This task installs the EPEL repo on on RedHat family
+# machines.
+#
+
+- name: Install EPEL
+  yum:
+    name: epel-release
+    state: latest
+  when: ansible_os_family == "RedHat"

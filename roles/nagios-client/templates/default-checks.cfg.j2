@@ -1,0 +1,54 @@
+#
+# This file was added by Ansible.
+#
+# This file contains some default Nagios checks that you can use to monitor
+# your systems. These defaults may not be suitable for every system.
+#
+
+# Check the total number of logged in users. Warning at 50, Critical at 75
+command[check_users]={{ nrpe_lib }}/check_users -w 50 -c 75
+
+# Check the load averages
+command[check_load]={{ nrpe_lib }}/check_load -w 35,30,25 -c 50,45,40
+
+# Check the total running processes on the system. Warning at 900, Critical at 100
+# This is set pretty high because people hammer our systems
+command[check_total_procs]={{ nrpe_lib }}/check_procs -w 900 -c 1000
+
+# Check the number of zombie processes. Warning at 10, Critical at 15
+command[check_zombie_procs]={{ nrpe_lib }}/check_procs -w 10 -c 15 -s Z
+
+# Check disk space usage on various partitions
+# Checks can use either percentages or raw numbers. The raw numbers are in MB.
+# Raw numbers are better for large partitions where percentages would be skewed by the total
+# size, and percentages are better for smaller partitions.
+command[check_root]={{ nrpe_lib }}/check_disk -w 5% -c 2% -p /
+
+# Check disk space on all partitions. Exclude "tmpfs" "devtmpfs" filesystem types.
+# Display disk space in GB.
+# Warning at 5GB free space and critical at 3GB free space.
+command[check_local_disks]={{ nrpe_lib }}/check_disk -l --exclude-type=tmpfs --exclude-type=devtmpfs --units=GB -w 5120 -c 3072
+
+# Check swap space usage. Warning at 10% free, Critical at 5%
+command[check_swap]={{ nrpe_lib }}/check_swap -w 10% -c 5%
+
+# Check the health of linux md raid
+command[check_mdraid]={{ nrpe_lib }}/check_linux_raid
+
+# Check if there are fail2ban processes running. It will alert if there are none.
+command[check_fail2ban]={{ nrpe_lib }}/check_procs -c 1: -C fail2ban-server
+
+# Check if there are condor processes running. It will alert if there are none.
+command[check_condor]={{ nrpe_lib }}/check_procs -c 1: -C condor_master
+
+# Check if there are salt-minion processes running. It will alert if there are none.
+command[check_salt_minion]={{ nrpe_lib }}/check_procs -c 1: -C salt-minion
+
+# Check if there are cfengine processes running. It will alert if there are none.
+command[check_cfengine]={{ nrpe_lib }}/check_procs -c 1: -C cf-serverd
+
+# Check salt-minion file cache age and alert if it's older than 3 hours (this means that salt-minion isn't running correctly)
+command[check_salt_runtime]={{ nrpe_lib }}/check_file_age -w 7200 -c 10800 -f /var/cache/salt/minion/highstate.cache.p
+
+# Check cfengine file state age and alert if it's older than 3 hours (this means that cf-agent isn't running correctly)
+command[check_cfengine_runtime]={{ nrpe_lib }}/check_file_age -w 7200 -c 10800 -f /var/cfengine/state/env_data

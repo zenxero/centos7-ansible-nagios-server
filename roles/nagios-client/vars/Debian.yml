@@ -1,0 +1,9 @@
+#
+# Nagios NRPE client variables for Debian-based systems like Ubuntu.
+#
+
+nrpe_service: nagios-nrpe-server
+nrpe_user: nagios
+nrpe_group: nagios
+nrpe_pid: /var/run/nagios/nrpe.pid
+nrpe_lib: /usr/lib/nagios/plugins

@@ -1,0 +1,39 @@
+---
+
+#
+# deploy-nagios-environment.yml
+#
+# This playbook will configure a monitoring environment with a Nagios master
+# server and monitored clients.
+#
+
+# We need to collect facts from all hosts that we reference
+# https://github.com/ansible/ansible/issues/9260
+- hosts: all
+  remote_user: root
+  tasks: []
+
+# Run pre-reqs against all hosts
+- hosts: all
+  remote_user: root
+  roles:
+    - centos-selinux
+    - centos-firewalld
+    - centos-epel
+
+# Set up Nagios server
+- hosts: nagios-server
+  remote_user: root
+  roles:
+    - nagios-server
+  vars:
+    admin_name_01: nagiosadmin
+    admin_email_01: nagiosadmin@localhost
+    nagios_username: nagiosadmin
+    nagios_password:
+
+# Set up monitored Nagios clients
+- hosts: monitored-servers
+  remote_user: root
+  roles:
+    - nagios-client

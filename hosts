@@ -1,0 +1,8 @@
+# Define your master nagios server here
+[nagios-server]
+
+
+
+# Monitored servers group
+# Define the hosts that you want to monitor here
+[monitored-servers]

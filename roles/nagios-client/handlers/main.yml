@@ -1,0 +1,13 @@
+---
+
+#
+# nagios client handlers
+#
+# Restart only when changes are made.
+#
+
+- name: restart nrpe
+  service:
+    name: "{{ nrpe_service }}"
+    state: restarted
+    enabled: yes

@@ -1,0 +1,185 @@
+---
+
+#
+# nagios-server
+#
+# This task configures a CentOS 7 system to be a nagios monitoring server.
+#
+
+# Pre-run OS check
+- name: Check operating system for CentOS 7 compatibility
+  fail:
+    msg="You're not running a supported operating system for the Nagios master server (CentOS 7)"
+  when: (ansible_distribution != "CentOS" and ansible_distribution_major_version != "7")
+
+# All tasks are grouped in a block/when statement so that this only runs against a CentOS 7 system.
+- block:
+
+#############################
+# Package installs
+#############################
+
+  - name: Install nagios pre-requisites
+    yum:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - php
+      - httpd
+      - httpd-tools
+      - mod_ssl
+      - mod_ldap
+      - mod_auth_kerb
+      - mod_authnz_pam
+      - samba-client
+      - samba-winbind
+      - libsmbclient
+      - sssd
+      - realmd
+      - libsemanage-python
+      - libselinux-python
+      - gcc
+      - glibc
+      - glibc-common
+      - gd
+      - gd-devel
+      - make
+      - perl
+      - perl-devel
+      - wget
+      - python-passlib
+      - openssl
+      - openssl-devel
+      - net-snmp-utils
+      - freeipmi
+      - OpenIPMI-modalias
+      - fping
+      - openldap-devel
+      - postgresql-devel
+      - radiusclient-ng-devel
+      - samba-client
+      - libsmbclient
+      - krb5-workstation
+
+  - name: Install nagios server
+    yum:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - nagios
+      - nrpe
+      - nagios-common
+      - nagios-devel
+      - nagios-plugins-all
+      - nagios-plugins-by_ssh
+      - nagios-plugins-check-updates
+      - nagios-plugins-file_age
+      - nagios-plugins-log
+      - nagios-plugins-mysql
+      - nagios-plugins-nrpe
+      - nagios-plugins-openmanage
+      - nagios-plugins-rpc
+      - nagios-plugins-sensors
+      - nagios-plugins-time
+      - nagios-plugins-apt
+      - net-snmp-utils
+
+#############################
+# Nagios configuration
+#############################
+
+  - name: Check nagios Users
+    stat: path=/etc/nagios/passwd
+    ignore_errors: true
+    register: nagios_user_pwfile_exists
+
+  - name: Create empty password file
+    command: touch /etc/nagios/passwd
+    args:
+      creates: /etc/nagios/passwd
+    when: nagios_user_pwfile_exists != 0
+
+  - name: Create nagios admin user
+    command: htpasswd -b -c /etc/nagios/passwd {{ nagios_username }} {{ nagios_password }}
+    ignore_errors: true
+    when: nagios_user_pwfile_exists != 0
+
+  - name: Copy nagios httpd config file onto server
+    copy:
+      src: files/nagios-httpd.conf
+      dest: /etc/httpd/conf.d/nagios.conf
+      owner: root
+      group: root
+      mode: 0644
+    notify: restart httpd
+
+  - name: Enable large installation tweaks
+    lineinfile:
+      path: /etc/nagios/nagios.cfg
+      state: present
+      regexp: '^use_large_installation_tweaks'
+      line: 'use_large_installation_tweaks=1'
+      backrefs: yes
+    notify: restart nagios
+
+  - name: Disable localhost server monitoring
+    lineinfile:
+      path: /etc/nagios/nagios.cfg
+      state: present
+      regexp: '^cfg_file=/etc/nagios/objects/localhost.cfg'
+      line: '#cfg_file=/etc/nagios/objects/localhost.cfg'
+      backrefs: yes
+    notify: restart nagios
+
+  - name: Copy nagios cgi config file template to server
+    template:
+      src: templates/nagios-cgi.cfg.j2
+      dest: /etc/nagios/cgi.cfg
+      owner: root
+      group: root
+      mode: 0664
+    notify: restart httpd
+
+  - name: Copy nagios contacts file template template to server
+    template:
+      src: templates/contacts.j2
+      dest: /etc/nagios/objects/contacts.cfg
+      owner: root
+      group: root
+      mode: 0664
+    notify: restart nagios
+
+  - name: Copy down custom checks
+    synchronize:
+      src: files/plugins/
+      dest: /usr/lib64/nagios/plugins/
+      delete: no
+      perms: yes
+    notify: restart nagios
+
+  - name: Add check_nrpe and check_snmp_synology commands to the commands.cfg file
+    blockinfile:
+      path: /etc/nagios/objects/commands.cfg
+      marker: "### {mark} ANSIBLE MANAGED BLOCK ###"
+      insertafter: EOF
+      content: |
+        # 'check_nrpe' command definition
+        define command{
+                command_name    check_nrpe
+                command_line    $USER1$/check_nrpe -2 -H $HOSTADDRESS$ -c $ARG1$
+                }
+        # 'check_snmp_synology' command definition
+        define command{
+                command_name    check_synology
+                command_line    $USER1$/check_snmp_synology -h $HOSTADDRESS$ -u $USER4$ -p $USER5$ -i -v -W 55
+                }
+    notify: restart nagios
+
+  - name: Generate the nagios monitoring templates for clients
+    template:
+      src: templates/servers.cfg.j2
+      dest: /etc/nagios/conf.d/servers.cfg
+    notify: restart nagios
+
+
+  when: (ansible_distribution == "CentOS" and ansible_distribution_major_version == "7")

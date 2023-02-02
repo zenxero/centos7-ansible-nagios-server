@@ -1,0 +1,9 @@
+#
+# Nagios NRPE client variables for RedHat-based systems like CentOS.
+#
+
+nrpe_service: nrpe
+nrpe_user: nrpe
+nrpe_group: nrpe
+nrpe_pid: /var/run/nrpe/nrpe.pid
+nrpe_lib: /usr/lib64/nagios/plugins

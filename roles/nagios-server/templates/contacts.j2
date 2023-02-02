@@ -1,0 +1,21 @@
+#
+# This file was added by Ansible.
+#
+
+define contactgroup {
+        contactgroup_name               admins
+        alias                           Nagios Administrators
+        members                         {{admin_name_01}}
+        }
+
+define contact {
+        contact_name                    {{admin_name_01}}            ; The name of this contact template
+        use                             generic-contact
+        service_notification_period     workhours                    ; service notifications can be sent anytime
+        host_notification_period        workhours                    ; host notifications can be sent anytime
+        service_notification_options    w,u,c,r,s                    ; send notifications for all service states, flapping events, and scheduled downtime events
+        host_notification_options       d,u,r,s                      ; send notifications for all host states, flapping events, and scheduled downtime events
+        service_notification_commands   notify-service-by-email      ; send service notifications via email
+        host_notification_commands      notify-host-by-email         ; send host notifications via email
+        email                           {{admin_email_01}}
+}
